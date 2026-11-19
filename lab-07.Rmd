@@ -26,34 +26,109 @@ glimpse(college_grad_df)
 # Exercise 1: Exploratory Data Analysis
 
 ```{r}
+ggplot(data = college_recent_grads, aes(x = median)) +
+  geom_histogram(binwidth = 2500) +
+  labs(
+    title = "Distribution of median earnings",
+    x = "Median earnings ($)",
+    y = "Number of majors"
+  )
+college_recent_grads %>%
+  group_by(major_category) %>%
+  summarise(
+    median_earnings = median(median, na.rm = TRUE)
+  ) %>%
+  arrange(desc(median_earnings))
 #your code here
 ```
 
-*Your explanation*
+*The distribution of median earnings is unimodal and right-skewed. Most majors have median earnings between $30,000 and $50,000, with a peak around $35,000. There are a few majors with considerably higher median earnings, including an extreme outlier at approximately $110,000, creating a long right tail.*
 
 
 # Exercise 2: Exploring relationship
 
 ```{r}
+college_recent_grads %>%
+  filter(!is.na(sharewomen), !is.na(median)) %>%
+  ggplot(aes(x = sharewomen, y = median)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+ggplot(
+  data = college_recent_grads,
+  aes(x = sharewomen, y = median)
+) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Share of women vs median earnings",
+    x = "Share of women",
+    y = "Median earnings ($)"
+  )
 #your code here
 ```
 
-*Your explanation*
+*The scatter plot shows a moderately negative, approximately linear relationship between the share of women in a major and median earnings. As the proportion of women increases, median earnings tend to decrease. However, the points are relatively spread out around the regression line, suggesting that the relationship is not particularly strong. There are also some outliers, especially among majors with a lower share of women.*
 
 # Exercise 3: Fit and interpret a numerical predictor
 
 ```{r}
+share_fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(median ~ sharewomen, data = college_recent_grads)
 #your code here
 ```
 
-*Your explanation*
+
+```{r}
+share_fit %>%
+  tidy()
+```
+
+```{r}
+share_fit %>%
+  augment(new_data = college_recent_grads) %>%
+  ggplot(aes(x = .pred, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Residuals vs predicted earnings",
+    x = "Predicted median earnings ($)",
+    y = "Residuals ($)"
+  )
+```
+
+*The residual plot shows no pattern, with residuals becoming more spread out as predicted median earnings increase. This suggests heteroscedasticity, meaning the assumption of constant variance may be violated. There are also some outliers, including one large positive residual around $58,000. However, there is no obvious curved pattern, suggesting that the linear model may capture the overall trend but does not fit all observations equally well.*
 
 # Exercise 4: Consider a categorical variable instead 
 
 ```{r}
+college_recent_grads <- college_recent_grads %>%
+  mutate(
+    engineering = if_else(
+      major_category == "Engineering",
+      "Engineering",
+      "Other"
+    )
+  )
 #your code here
 ```
 
+```{r}
+college_recent_grads %>%
+  count(engineering)
+#your code here
+```
+
+```{r}
+engineering_fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(median ~ engineering, data = college_recent_grads)
+
+engineering_fit %>%
+  tidy()
+#your code here
+```
 *Your explanation*
 
 ---
